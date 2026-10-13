@@ -19,8 +19,11 @@
   .tabs{display:flex;gap:8px;margin-top:12px}
   .tab{flex:1;text-align:center;padding:10px;border-radius:10px;background:#0f1115;border:1px solid #2a2f3a;cursor:pointer}
   .tab.on{border-color:var(--acc);color:var(--acc)}
+  #info{display:flex;gap:12px;margin-top:16px;align-items:center}
+  #info img{width:120px;border-radius:10px}
+  #info b{display:block;margin-bottom:4px}
   #out{margin-top:16px;display:grid;gap:8px}
-  a.dl{display:block;padding:12px 14px;border-radius:10px;background:#0f1115;border:1px solid #2a2f3a;color:var(--fg);text-decoration:none;word-break:break-all}
+  .dl{display:block;width:100%;text-align:left;padding:12px 14px;border-radius:10px;background:#0f1115;border:1px solid #2a2f3a;color:var(--fg);text-decoration:none;font-size:15px;font-weight:500}
   .msg{color:var(--mut);font-size:14px;margin-top:12px}
   small{display:block;text-align:center;color:var(--mut);margin-top:20px}
 </style>
@@ -31,46 +34,85 @@
   <p class="sub">YouTube · TikTok · Instagram · Facebook · Twitter/X</p>
   <div class="card">
     <input id="url" placeholder="បិទភ្ជាប់តំណ (link) នៅទីនេះ..." inputmode="url">
-    <div class="tabs">
-      <div class="tab on" data-t="mp4">🎬 MP4</div>
-      <div class="tab" data-t="mp3">🎵 MP3</div>
-    </div>
     <div class="row">
       <button class="alt" id="paste">Paste</button>
-      <button id="go">ទាញយក</button>
+      <button id="go">ស្វែងរក</button>
     </div>
     <div id="msg" class="msg"></div>
+    <div id="info" hidden><img id="th"><div><b id="ti"></b><span id="du" class="msg"></span></div></div>
+    <div class="tabs" id="tabs" hidden>
+      <div class="tab on" data-t="video">🎬 វីដេអូ</div>
+      <div class="tab" data-t="audio">🎵 សំឡេង</div>
+    </div>
     <div id="out"></div>
   </div>
   <small>ទាញយកតែមាតិកាដែលអ្នកមានសិទ្ធិប៉ុណ្ណោះ។</small>
 </main>
 <script>
-let type='mp4';
+let type='video', data=null;
 const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mb=b=>b?' · '+(b/1048576).toFixed(1)+' MB':'';
+
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
-  t.classList.add('on'); type=t.dataset.t;
+  t.classList.add('on'); type=t.dataset.t; render();
 });
 $('paste').onclick=async()=>{try{$('url').value=await navigator.clipboard.readText()}catch{}};
+
 $('go').onclick=async()=>{
   const url=$('url').value.trim(); if(!url) return;
-  $('out').innerHTML=''; $('msg').textContent='កំពុងដំណើរការ...';
+  $('out').innerHTML=''; $('info').hidden=true; $('tabs').hidden=true;
+  $('msg').textContent='កំពុងស្វែងរក...';
   try{
     const r=await fetch('/api/download?url='+encodeURIComponent(url));
-    const d=await r.json();
-    if(d.error){$('msg').textContent='❌ '+d.error;return}
-    let links=d.links||[];
-    const isAudio=l=>/mp3|m4a|audio/i.test(l.label+l.url);
-    const f=links.filter(l=>type==='mp3'?isAudio(l):!isAudio(l));
-    links=f.length?f:links;
-    if(!links.length){$('msg').textContent='រកមិនឃើញតំណទាញយកទេ';console.log(d.raw);return}
-    $('msg').textContent='✅ រកឃើញ '+links.length;
-    links.slice(0,12).forEach(l=>{
-      const a=document.createElement('a');a.className='dl';a.href=l.url;a.target='_blank';a.rel='noopener';a.download='';
-      a.textContent='⬇️ '+l.label;$('out').appendChild(a);
-    });
+    data=await r.json();
+    if(data.error){$('msg').textContent='❌ '+data.error;console.log(data);return}
+    if(!data.items||!data.items.length){$('msg').textContent='រកមិនឃើញតំណទាញយកទេ';console.log(data.raw);return}
+    $('msg').textContent='';
+    if(data.title){$('info').hidden=false;$('ti').textContent=data.title;$('du').textContent=data.duration||'';if(data.thumb)$('th').src=data.thumb;}
+    $('tabs').hidden=false; render();
   }catch(e){$('msg').textContent='❌ '+e}
 };
+
+function render(){
+  const out=$('out'); out.innerHTML='';
+  let items=data.items;
+  if(type==='audio'){
+    const seen=new Set();
+    items=items.filter(i=>i.audio && !seen.has(i.ext+i.size) && seen.add(i.ext+i.size));
+  }else{
+    items=items.filter(i=>!i.audio && (i.convert||i.bundle));
+  }
+  if(!items.length){out.innerHTML='<div class="msg">គ្មានជម្រើសទេ</div>';return}
+  items.forEach(it=>{
+    if(it.url){
+      const a=document.createElement('a');a.className='dl';a.href=it.url;a.target='_blank';a.rel='noopener';
+      a.textContent='⬇️ '+it.label+mb(it.size);out.appendChild(a);
+    }else{
+      const b=document.createElement('button');b.className='dl';b.textContent='⚙️ '+it.label+' (បម្លែង)';
+      b.onclick=()=>conv(it,b);out.appendChild(b);
+    }
+  });
+}
+
+async function conv(it,btn){
+  btn.disabled=true; btn.textContent='⏳ កំពុងបម្លែង...';
+  try{
+    let r=await (await fetch('/api/convert?path='+encodeURIComponent(it.convert))).json();
+    let links=r.links||[], id=r.taskId;
+    for(let n=0;!links.length&&id&&n<45;n++){
+      await sleep(2000);
+      r=await (await fetch('/api/status?id='+encodeURIComponent(id))).json();
+      links=r.links||[];
+      const st=r.raw&&typeof r.raw.status==='string'?r.raw.status:'';
+      btn.textContent='⏳ កំពុងបម្លែង... '+st;
+    }
+    if(!links.length){btn.textContent='❌ បរាជ័យ (មើល console)';btn.disabled=false;console.log(r);return}
+    const a=document.createElement('a');a.className='dl';a.href=links[0].url;a.target='_blank';a.rel='noopener';
+    a.textContent='✅ ទាញយក '+it.label;btn.replaceWith(a);
+  }catch(e){btn.textContent='❌ '+e;btn.disabled=false}
+}
 </script>
 </body>
 </html>
