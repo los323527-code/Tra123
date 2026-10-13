@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       });
       const data = await r.json();
       const d = Array.isArray(data) ? data[0] : data;
-      if (!d || !d.urls) return res.status(502).json({ error: 'API error', raw: data });
+      if (!d || !d.urls) return res.status(502).json({ error: 'API error ' + r.status + ': ' + JSON.stringify(data).slice(0,300) });
       const items = d.urls.map(u => ({
         label: `${u.name} ${u.subName || u.quality}`,
         ext: u.extension,
