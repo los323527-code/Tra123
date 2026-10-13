@@ -87,7 +87,7 @@ function render(){
   if(!items.length){out.innerHTML='<div class="msg">គ្មានជម្រើសទេ</div>';return}
   items.forEach(it=>{
     if(it.url){
-      const a=document.createElement('a');a.className='dl';a.href=it.url;a.target='_blank';a.rel='noopener';
+      const a=document.createElement('a');a.className='dl';a.href='/api/dl?u='+encodeURIComponent(it.url)+'&name='+encodeURIComponent((data.title||'video')+'.'+(it.ext||'mp4'));
       a.textContent='⬇️ '+it.label+mb(it.size);out.appendChild(a);
     }else{
       const b=document.createElement('button');b.className='dl';b.textContent='⚙️ '+it.label+' (បម្លែង)';
