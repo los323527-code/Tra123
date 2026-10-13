@@ -1,9 +1,9 @@
 const PLATFORMS = {
-  youtube:   { host: 'youtube86.p.rapidapi.com',         path: '/CHANGE_ME', param: 'url' },
-  tiktok:    { host: 'tik-tok2.p.rapidapi.com',          path: '/CHANGE_ME', param: 'url' },
-  instagram: { host: 'ig-downloader-api.p.rapidapi.com', path: '/CHANGE_ME', param: 'url' },
-  facebook:  { host: 'facebook17.p.rapidapi.com',        path: '/CHANGE_ME', param: 'url' },
-  twitter:   { host: 'twitter65.p.rapidapi.com',         path: '/CHANGE_ME', param: 'url' },
+  youtube:   { host: 'youtube86.p.rapidapi.com',         path: '/links',     method: 'POST' },
+  tiktok:    { host: 'tik-tok2.p.rapidapi.com',          path: '/CHANGE_ME', method: 'GET', param: 'url' },
+  instagram: { host: 'ig-downloader-api.p.rapidapi.com', path: '/CHANGE_ME', method: 'GET', param: 'url' },
+  facebook:  { host: 'facebook17.p.rapidapi.com',        path: '/CHANGE_ME', method: 'GET', param: 'url' },
+  twitter:   { host: 'twitter65.p.rapidapi.com',         path: '/CHANGE_ME', method: 'GET', param: 'url' },
 };
 
 function detect(u) {
@@ -33,10 +33,15 @@ export default async function handler(req, res) {
   const key = detect(url || '');
   if (!key) return res.status(400).json({ error: 'Unsupported or missing URL' });
   const p = PLATFORMS[key];
+  const headers = { 'x-rapidapi-key': process.env.RAPIDAPI_KEY, 'x-rapidapi-host': p.host };
   try {
-    const r = await fetch(`https://${p.host}${p.path}?${p.param}=${encodeURIComponent(url)}`, {
-      headers: { 'x-rapidapi-key': process.env.RAPIDAPI_KEY, 'x-rapidapi-host': p.host },
-    });
+    let r;
+    if (p.method === 'POST') {
+      headers['Content-Type'] = 'application/json';
+      r = await fetch(`https://${p.host}${p.path}`, { method: 'POST', headers, body: JSON.stringify({ url }) });
+    } else {
+      r = await fetch(`https://${p.host}${p.path}?${p.param}=${encodeURIComponent(url)}`, { headers });
+    }
     const data = await r.json();
     const links = [];
     collect(data, links);
