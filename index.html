@@ -108,7 +108,7 @@ async function conv(it,btn){
       const st=r.raw&&typeof r.raw.status==='string'?r.raw.status:'';
       btn.textContent='⏳ កំពុងបម្លែង... '+st;
     }
-    if(!links.length){btn.textContent='❌ បរាជ័យ (មើល console)';btn.disabled=false;console.log(r);return}
+    if(!links.length){btn.textContent='❌ '+JSON.stringify(r.raw||r).slice(0,250);btn.disabled=false;console.log(r);return}
     const a=document.createElement('a');a.className='dl';a.href=links[0].url;a.target='_blank';a.rel='noopener';
     a.textContent='✅ ទាញយក '+it.label;btn.replaceWith(a);
   }catch(e){btn.textContent='❌ '+e;btn.disabled=false}
