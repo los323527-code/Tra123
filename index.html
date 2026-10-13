@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Downloader</title>
+<style>
+  :root{--bg:#0f1115;--card:#181b22;--fg:#f2f3f5;--mut:#8b919c;--acc:#7c5cff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,'Noto Sans Khmer',sans-serif;background:var(--bg);color:var(--fg);display:flex;justify-content:center;padding:24px 16px}
+  main{width:100%;max-width:560px}
+  h1{font-size:26px;margin:8px 0 4px}
+  p.sub{color:var(--mut);margin:0 0 20px}
+  .card{background:var(--card);border-radius:16px;padding:16px}
+  input{width:100%;padding:14px;border-radius:12px;border:1px solid #2a2f3a;background:#0f1115;color:var(--fg);font-size:16px}
+  .row{display:flex;gap:8px;margin-top:12px}
+  button{flex:1;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:600;background:var(--acc);color:#fff;cursor:pointer}
+  button.alt{background:#2a2f3a}
+  .tabs{display:flex;gap:8px;margin-top:12px}
+  .tab{flex:1;text-align:center;padding:10px;border-radius:10px;background:#0f1115;border:1px solid #2a2f3a;cursor:pointer}
+  .tab.on{border-color:var(--acc);color:var(--acc)}
+  #out{margin-top:16px;display:grid;gap:8px}
+  a.dl{display:block;padding:12px 14px;border-radius:10px;background:#0f1115;border:1px solid #2a2f3a;color:var(--fg);text-decoration:none;word-break:break-all}
+  .msg{color:var(--mut);font-size:14px;margin-top:12px}
+  small{display:block;text-align:center;color:var(--mut);margin-top:20px}
+</style>
+</head>
+<body>
+<main>
+  <h1>⬇️ Video Downloader</h1>
+  <p class="sub">YouTube · TikTok · Instagram · Facebook · Twitter/X</p>
+  <div class="card">
+    <input id="url" placeholder="បិទភ្ជាប់តំណ (link) នៅទីនេះ..." inputmode="url">
+    <div class="tabs">
+      <div class="tab on" data-t="mp4">🎬 MP4</div>
+      <div class="tab" data-t="mp3">🎵 MP3</div>
+    </div>
+    <div class="row">
+      <button class="alt" id="paste">Paste</button>
+      <button id="go">ទាញយក</button>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div id="out"></div>
+  </div>
+  <small>ទាញយកតែមាតិកាដែលអ្នកមានសិទ្ធិប៉ុណ្ណោះ។</small>
+</main>
+<script>
+let type='mp4';
+const $=id=>document.getElementById(id);
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); type=t.dataset.t;
+});
+$('paste').onclick=async()=>{try{$('url').value=await navigator.clipboard.readText()}catch{}};
+$('go').onclick=async()=>{
+  const url=$('url').value.trim(); if(!url) return;
+  $('out').innerHTML=''; $('msg').textContent='កំពុងដំណើរការ...';
+  try{
+    const r=await fetch('/api/download?url='+encodeURIComponent(url));
+    const d=await r.json();
+    if(d.error){$('msg').textContent='❌ '+d.error;return}
+    let links=d.links||[];
+    const isAudio=l=>/mp3|m4a|audio/i.test(l.label+l.url);
+    const f=links.filter(l=>type==='mp3'?isAudio(l):!isAudio(l));
+    links=f.length?f:links;
+    if(!links.length){$('msg').textContent='រកមិនឃើញតំណទាញយកទេ';console.log(d.raw);return}
+    $('msg').textContent='✅ រកឃើញ '+links.length;
+    links.slice(0,12).forEach(l=>{
+      const a=document.createElement('a');a.className='dl';a.href=l.url;a.target='_blank';a.rel='noopener';a.download='';
+      a.textContent='⬇️ '+l.label;$('out').appendChild(a);
+    });
+  }catch(e){$('msg').textContent='❌ '+e}
+};
+</script>
+</body>
+</html>
