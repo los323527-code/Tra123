@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const { path } = req.query;
   if (!path || !path.startsWith('/convert?')) return res.status(400).json({ error: 'bad path' });
   try {
-    const r = await fetch(`https://${YT}${path}`, {
+    const r = await fetch(`https://${YT}/api/youtube${path}`, {
       headers: { 'x-rapidapi-key': process.env.RAPIDAPI_KEY, 'x-rapidapi-host': YT },
     });
     const data = await r.json();

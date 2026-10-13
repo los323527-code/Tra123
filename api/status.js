@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
   if (!id) return res.status(400).json({ error: 'missing id' });
   try {
-    const r = await fetch(`https://${YT}/status/${encodeURIComponent(id)}`, {
+    const r = await fetch(`https://${YT}/api/youtube/status/${encodeURIComponent(id)}`, {
       headers: { 'x-rapidapi-key': process.env.RAPIDAPI_KEY, 'x-rapidapi-host': YT },
     });
     const data = await r.json();

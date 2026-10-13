@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   if (!key) return res.status(400).json({ error: 'Unsupported or missing URL' });
   try {
     if (key === 'youtube') {
-      const r = await fetch(`https://${YT}/links`, {
+      const r = await fetch(`https://${YT}/api/youtube/links`, {
         method: 'POST',
         headers: { ...H(YT), 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
